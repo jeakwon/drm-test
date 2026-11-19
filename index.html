@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Memory test</title>
+<meta name="theme-color" content="#111426">
+<meta name="robots" content="noindex">
+<script>document.documentElement.classList.add('boot'); setTimeout(function () { document.documentElement.classList.remove('boot'); }, 2500);</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@200..700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ink:#111426; --panel:#1A1E34; --line:#2C3152; --text:#EEF0F6; --soft:#CDD1E0; --muted:#9CA2BA; --faint:#7E849E;
+  --ghost:#B9A8FF; --ghost-glow:rgba(185,168,255,.55);
+  --serif:"Hahmlet","Noto Serif KR",Georgia,serif;
+  --sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  --pad:clamp(18px,5vw,40px);
+}
+*{box-sizing:border-box}
+html{background:var(--ink);color:var(--text)}
+body{margin:0;min-height:100dvh;font:400 16px/1.6 var(--sans);-webkit-font-smoothing:antialiased;word-break:keep-all;display:flex;flex-direction:column}
+html.boot body{visibility:hidden}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit}
+.btn{appearance:none;border:0;border-radius:999px;padding:13px 24px;font:600 16px/1.1 var(--sans);cursor:pointer;background:transparent;box-shadow:inset 0 0 0 1.5px var(--line)}
+.btn:hover{box-shadow:inset 0 0 0 1.5px var(--muted)}
+.btn.primary{background:var(--text);color:var(--ink);box-shadow:none}
+.btn.small{padding:8px 14px;font-size:14px}
+.btn:focus-visible,a:focus-visible{outline:2px solid var(--text);outline-offset:3px}
+a{color:var(--soft)}
+a.btn{text-decoration:none;display:inline-block}
+
+.top{display:flex;align-items:center;gap:12px;padding:14px var(--pad) 0}
+.brand{font:500 17px/1.2 var(--serif);color:var(--soft)}
+.event{color:var(--muted);font-size:14px}
+.top .btn{margin-left:auto}
+main{flex:1;display:flex;flex-direction:column;width:100%;max-width:640px;margin:0 auto;padding:0 var(--pad) calc(var(--pad) + env(safe-area-inset-bottom))}
+.view{flex:1;display:flex;flex-direction:column}
+
+/* intro and text views */
+.intro{padding-top:12vh}
+.intro h1{font:300 clamp(36px,9vw,56px)/1.12 var(--serif);letter-spacing:-.02em;margin:0 0 22px}
+.lead{font-size:18px;color:var(--soft);margin:0 0 30px;max-width:30em}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.meta{color:var(--muted);font-size:14.5px}
+.fine{color:var(--faint);font-size:14px;margin-top:auto;padding-top:40px}
+.notice{margin:0 0 22px;padding:12px 14px;border-radius:12px;background:rgba(250,178,25,.12);color:#F6D58E;font-size:14.5px}
+
+/* the stage: one word at a time */
+.stage{flex:1;display:grid;grid-template-rows:auto 1fr auto;min-height:70dvh}
+.stage .label{padding-top:8vh;text-align:center;color:var(--muted);font-size:15px;letter-spacing:.01em}
+.word{align-self:center;text-align:center;font:300 clamp(54px,16vw,96px)/1 var(--serif);letter-spacing:-.01em;margin:0;min-height:1.2em}
+.word.in{animation:in .18s ease-out}
+@keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.count{font:200 clamp(90px,28vw,150px)/1 var(--serif);text-align:center;align-self:center;color:var(--soft)}
+.bar{height:3px;border-radius:3px;background:var(--line);overflow:hidden;margin-bottom:8vh}
+.bar i{display:block;height:100%;width:0;background:var(--soft);transition:width .25s linear}
+
+/* sums between study and test */
+.sum{align-self:center;text-align:center;font:400 clamp(40px,11vw,64px)/1 var(--sans);font-variant-numeric:tabular-nums}
+.choices{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:26px 0 0}
+.choices button{appearance:none;border:0;border-radius:14px;padding:18px 0;background:var(--panel);font:600 22px/1 var(--sans);cursor:pointer;font-variant-numeric:tabular-nums}
+.choices button.right{background:#1F4A36}
+.choices button.wrong{background:#4A2430}
+
+/* test */
+.q{text-align:center;color:var(--muted);font-size:16px;padding-top:6vh}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6vh}
+.answers button{appearance:none;border:0;border-radius:18px;padding:22px 10px;font:600 18px/1.2 var(--sans);cursor:pointer;background:var(--panel)}
+.answers button.yes{background:var(--text);color:var(--ink)}
+.answers button:active{transform:scale(.98)}
+.answers button:focus-visible{outline:2px solid var(--text);outline-offset:3px}
+.keys{text-align:center;color:var(--faint);font-size:13px;margin:-3vh 0 4vh}
+@media (hover:none){.keys{display:none}}
+
+/* result */
+.result{padding-top:7vh}
+.result h1{font:400 clamp(30px,7.4vw,44px)/1.18 var(--serif);letter-spacing:-.015em;margin:0 0 14px}
+.ghosts{display:flex;flex-wrap:wrap;gap:6px 26px;margin:20px 0 18px}
+.ghost{font:300 clamp(46px,13vw,72px)/1.05 var(--serif);color:var(--ghost);text-shadow:0 0 22px var(--ghost-glow),0 0 2px var(--ghost-glow);animation:apparate 1.8s ease-out both}
+.ghost:nth-child(2){animation-delay:.35s}.ghost:nth-child(3){animation-delay:.7s}
+@keyframes apparate{from{opacity:0;filter:blur(10px)}to{opacity:1;filter:none}}
+.sec{margin-top:34px}
+.sec h2{font:500 19px/1.3 var(--serif);margin:0 0 12px}
+.lures{display:grid;gap:14px}
+.lure{display:grid;grid-template-columns:6.2em minmax(0,1fr);gap:2px 14px;align-items:baseline}
+.lure b{font:400 24px/1.2 var(--serif)}
+.lure b.said{color:var(--ghost);text-shadow:0 0 14px var(--ghost-glow)}
+.lure .you{font-size:15px}
+.lure .from{grid-column:2;color:var(--muted);font-size:14.5px}
+.tally{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.tally li{display:flex;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding:9px 0}
+.tally b{font-weight:600;white-space:nowrap}
+.room p{margin:0 0 6px;color:var(--soft)}
+.status{color:var(--muted);font-size:14.5px;margin:10px 0 0}
+.board{margin-top:40px;padding-top:26px;border-top:1px solid var(--line)}
+.bh{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.bh h2{margin:0}
+.live{display:flex;align-items:center;gap:7px;color:var(--faint);font-size:13.5px}
+.live i{width:8px;height:8px;border-radius:50%;background:#0ca30c;box-shadow:0 0 8px #0ca30c}
+.fooled{margin:18px 0 4px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.fooled b{font:600 clamp(46px,13vw,64px)/1 var(--sans);color:var(--ghost);text-shadow:0 0 20px var(--ghost-glow)}
+.fooled span{color:var(--soft);font-size:16px;max-width:15em}
+.fooled2{color:var(--muted);font-size:15px;margin:0 0 16px}
+.pie-row{display:grid;grid-template-columns:minmax(120px,42%) minmax(0,1fr);gap:18px;align-items:center}
+.pie svg{display:block;width:100%;height:auto}
+.pleg{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.pleg li{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:4px 10px;align-items:center;font-size:15px}
+.pleg .sw{width:14px;height:14px;border-radius:4px}
+.pleg b{font-weight:600;text-align:right;white-space:nowrap}
+.pleg small{grid-column:2/-1;color:var(--muted);font-size:13px;margin-top:-4px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:22px 0 0}
+.tile{background:var(--panel);border-radius:14px;padding:12px 14px}
+.tile span{display:block;color:var(--muted);font-size:13.5px}
+.tile b{display:block;font:600 28px/1.2 var(--sans);margin-top:4px}
+.lrcap{color:var(--muted);font-size:14px;margin:22px 0 0}
+.lr{display:grid;gap:12px;margin-top:10px}
+.lr div{display:grid;grid-template-columns:4.8em minmax(0,1fr) 3em;gap:12px;align-items:center}
+.lr em{font:400 20px/1 var(--serif);font-style:normal;color:var(--ghost)}
+.lr .tr{height:10px;border-radius:0 4px 4px 0;background:transparent;position:relative}
+.lr .tr i{position:absolute;left:0;top:0;bottom:0;border-radius:0 4px 4px 0;background:var(--ghost)}
+.lr b{text-align:right;font-weight:600}
+.after{display:flex;flex-wrap:wrap;gap:10px;margin-top:34px}
+@media (prefers-reduced-motion:reduce){.word.in,.ghost{animation:none}.bar i{transition:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="brand" data-t="brand">Memory test</span>
+  <span class="event" id="event"></span>
+  <button class="btn small" id="langBtn" type="button"></button>
+</header>
+<main>
+  <section class="view intro" id="vIntro">
+    <p class="notice" id="notice" hidden></p>
+    <h1 data-t="h1">A one‑minute memory test</h1>
+    <p class="lead" data-t="lead">You'll see three short lists of English words, one word at a time. Try to remember them. After a few quick sums, you'll see some words and say which ones were in the lists.</p>
+    <div class="row"><button class="btn primary" id="startBtn" type="button" data-t="start">Start</button><span class="meta" data-t="startMeta">About 3 minutes</span></div>
+    <p class="fine" data-t="fine">No names or contact details. Your answers count only toward the room's statistics.</p>
+  </section>
+
+  <section class="view stage" id="vReady" hidden>
+    <p class="label" data-t="ready">Words appear every 1.5 seconds. Keep your eyes here.</p>
+    <p class="count" id="countdown" aria-live="assertive"></p>
+    <div></div>
+  </section>
+
+  <section class="view stage" id="vStudy" hidden>
+    <p class="label" id="listLabel"></p>
+    <p class="word" id="studyWord" aria-live="assertive"></p>
+    <div class="bar" aria-hidden="true"><i id="studyBar"></i></div>
+  </section>
+
+  <section class="view stage" id="vSums" hidden>
+    <p class="label" id="sumsLabel"></p>
+    <div style="align-self:center">
+      <p class="sum" id="sum"></p>
+      <div class="choices" id="choices"></div>
+    </div>
+    <div class="bar" aria-hidden="true"><i id="sumsBar"></i></div>
+  </section>
+
+  <section class="view intro" id="vTestIntro" hidden>
+    <h1 data-t="testH">Now the test</h1>
+    <p class="lead" data-t="testLead">You'll see 21 words, one at a time. For each, say whether it was in the lists you just saw. Go with your first impression.</p>
+    <div class="row"><button class="btn primary" id="testBtn" type="button" data-t="testGo">Begin the test</button></div>
+  </section>
+
+  <section class="view stage" id="vTest" hidden>
+    <p class="q"><span data-t="q">Was this word in the lists?</span><br><span id="qCount"></span></p>
+    <p class="word" id="testWord" aria-live="assertive"></p>
+    <div>
+      <div class="answers"><button class="yes" id="yesBtn" type="button" data-t="yes">Yes, I saw it</button><button id="noBtn" type="button" data-t="no">No</button></div>
+      <p class="keys" data-t="keys">Keyboard: Y for yes, N for no</p>
+    </div>
+  </section>
+
+  <section class="view result" id="vResult" hidden>
+    <h1 id="rHead"></h1>
+    <div class="ghosts" id="rGhosts"></div>
+    <p class="lead" id="rLead"></p>
+    <section class="sec"><h2 data-t="luresH">The three words that were never shown</h2><div class="lures" id="rLures"></div></section>
+    <section class="sec"><h2 data-t="tallyH">Your answers</h2><ul class="tally" id="rTally"></ul></section>
+    <section class="board" id="rRoom" hidden aria-live="polite">
+      <div class="bh"><h2 data-t="roomH">The room, live</h2><span class="live"><i></i><span id="liveTxt"></span></span></div>
+      <p class="fooled"><b id="atLeast"></b><span id="atLeastT"></span></p>
+      <p class="fooled2" id="allT"></p>
+      <div class="pie-row"><div class="pie" id="pie"></div><ul class="pleg" id="pieLegend"></ul></div>
+      <div class="tiles" id="tiles"></div>
+      <p class="lrcap" id="lureCap"></p>
+      <div class="lr" id="lureRoom"></div>
+    </section>
+    <p class="status" id="rStatus" aria-live="polite"></p>
+    <div class="after">
+      <button class="btn small" id="retryBtn" type="button" hidden data-t="retry">Send again</button>
+      <a class="btn small" id="resultsLink" href="results.html" target="_blank" rel="noopener" hidden data-t="seeRoom">See the room's results</a>
+      <button class="btn small" id="againBtn" type="button" data-t="again">Start over</button>
+    </div>
+  </section>
+</main>
+
+<script>window.addEventListener('error', function (e) { if (/config\.js/.test(e.filename || '')) window.DRM_CONFIG_ERROR = 'syntax'; }, true);</script>
+<script>document.write('<script src="config.js' + (/^http/.test(location.protocol) ? '?v=' + Date.now() : '') + '" onerror="window.DRM_CONFIG_ERROR=\'missing\'"><\/script>');</script>
+<script src="drm.js?v=drm-1"></script>
+<script>
+(() => {
+'use strict';
+const D = window.DRM, $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
+const L = D.LANG, CFG = D.CFG;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const pct = v => Math.round(v * 100);
+
+/* ---------------- words ---------------- */
+const STR = {
+  en: {
+    title:'Memory test', langAria:'한국어로 보기',
+    listOf:(i, n) => n === 1 ? 'Remember these words' : `List ${i} of ${n}`, nextList:(i, n) => `List ${i} of ${n} is next`,
+    h1:sec => sec <= 90 ? 'A one‑minute memory test' : 'A short memory test',
+    lead:k => k === 1 ? 'You\'ll see a list of English words, one word at a time. Try to remember them. After a few quick sums, you\'ll see some words and say which ones were in the list.'
+      : `You'll see ${k} short lists of English words, one word at a time. Try to remember them. After a few quick sums, you'll see some words and say which ones were in the lists.`,
+    meta:sec => sec < 80 ? 'About a minute' : `About ${Math.round(sec / 60)} minutes`,
+    testLead:(n, k) => `You'll see ${n} words, one at a time. For each, say whether it was in the ${k === 1 ? 'list' : 'lists'} you just saw. Go with your first impression.`,
+    q:k => k === 1 ? 'Was this word in the list?' : 'Was this word in the lists?',
+    luresH:k => k === 1 ? 'The word that was never shown' : `The ${k === 2 ? 'two' : 'three'} words that were never shown`,
+    sums:s => `Mental math: solve as many as you can (${s}s)`,
+    tMath:'Mental math, answered correctly',
+    live:s => s < 6 ? 'Updating live' : `Updated ${s}s ago`,
+    fooled:(k, K) => k === 0 ? 'Not fooled' : K === 1 ? 'Fooled' : k === K ? (K === 2 ? 'Fooled by both' : `Fooled by all ${K}`) : k === 1 ? 'Fooled by one' : `Fooled by ${k}`,
+    atLeast:K => K === 1 ? 'said they saw a word that was never shown' : 'were fooled by at least one word that was never shown',
+    allOf:(p, K) => K === 2 ? `${p}% were fooled by both.` : `${p}% were fooled by all ${K}.`,
+    people:n => `${n} ${n === 1 ? 'person' : 'people'}`,
+    lureCap:'Said they saw each never-shown word',
+    tN:'People finished', tAcc:'Test accuracy', tHit:'Real words recognized', tMathAcc:'Mental math accuracy',
+    pieAria:t => `Pie chart. ${t}`,
+    qCount:(i, n) => `${i} of ${n}`,
+    headSome:n => n === 1 ? 'You saw a word that was never there' : `You saw ${n} words that were never there`,
+    headNone:'You didn\'t fall for any of them',
+    leadSome:(n, k) => n === 1 ? `It wasn't in the ${k === 1 ? 'list' : 'lists'}. It's the word ${k === 1 ? 'the' : 'its'} list kept pointing to, so your memory filled it in.`
+      : 'None of these was in the lists. Each one is the word its list kept pointing to, so your memory filled it in.',
+    leadNone:k => k === 1 ? 'The list kept pointing to one word that was never shown. Most people say they saw it.'
+      : 'Each list kept pointing to one word that was never shown. Most people say they saw at least one of them.',
+    youSaid:'You said you saw it', youNo:'You said no', fromList:w => `The list was ${w.slice(0, 5).join(', ')}…`,
+    tStudied:k => `Recognized words that were in the ${k === 1 ? 'list' : 'lists'}`,
+    tControl:ws => ws.length === 1 ? `Said you saw ${ws[0]} (its list wasn't shown)` : `Said you saw ${ws.slice(0, -1).join(', ')} or ${ws[ws.length - 1]} (their lists weren't shown)`,
+    tUnrelated:'Said you saw other new words',
+    of:(a, b) => `${a} of ${b}`,
+    roomSaw:(w, p) => `${p}% said they saw ${w}.`, roomN:n => `${n} ${n === 1 ? 'person has' : 'people have'} finished so far.`,
+    sent:'Your answers were sent.', sending:'Sending your answers…', failed:'Your answers couldn\'t be sent.', practice:'Practice mode: your answers weren\'t sent anywhere.',
+    problem:{ missing:'config.js wasn\'t found, so this runs in practice mode.', syntax:'config.js couldn\'t be read, so this runs in practice mode.', shape:'collectUrl in config.js isn\'t an Apps Script web app address (…/exec).', access:'The collector asked for a sign-in. Check that the Apps Script deployment allows Anyone.', down:'Couldn\'t reach the collector right now.' },
+    resumeStudy:'The page was reloaded during the lists, so they start again from the beginning.',
+  },
+  ko: {
+    title:'기억 테스트', langAria:'View in English',
+    listOf:(i, n) => n === 1 ? '단어를 기억해 두세요' : `${n}개 중 ${i}번째 목록`, nextList:(i, n) => `다음은 ${i}번째 목록이에요 (전체 ${n}개)`,
+    h1:sec => sec <= 90 ? '1분 기억 테스트' : '짧은 기억 테스트',
+    lead:k => k === 1 ? '영어 단어 목록 하나가 한 단어씩 지나가요. 기억해 두세요. 간단한 덧셈을 몇 개 푼 뒤, 단어들을 보고 목록에 있었는지 답하면 돼요.'
+      : `영어 단어 목록 ${k}개가 한 단어씩 지나가요. 기억해 두세요. 간단한 덧셈을 몇 개 푼 뒤, 단어들을 보고 목록에 있었는지 답하면 돼요.`,
+    meta:sec => sec < 80 ? '1분쯤 걸려요' : `${Math.round(sec / 60)}분쯤 걸려요`,
+    testLead:(n, k) => `단어 ${n}개가 하나씩 나와요. 방금 본 목록에 있던 단어인지 답해 주세요. 처음 떠오르는 대로 고르면 돼요.`,
+    q:() => '이 단어가 목록에 있었나요?',
+    luresH:k => k === 1 ? '한 번도 보여 주지 않은 단어' : `한 번도 보여 주지 않은 ${k === 2 ? '두' : '세'} 단어`,
+    sums:s => `암산: 할 수 있는 만큼 풀어 보세요 (${s}초)`,
+    tMath:'암산 정답',
+    live:s => s < 6 ? '실시간으로 갱신 중' : `${s}초 전 갱신`,
+    fooled:(k, K) => k === 0 ? '안 낚임' : K === 1 ? '낚임' : k === K ? (K === 2 ? '둘 다 낚임' : '셋 다 낚임') : k === 1 ? '하나만 낚임' : '둘 낚임',
+    atLeast:K => K === 1 ? '보여 주지 않은 단어를 봤다고 답했어요' : '보여 주지 않은 단어에 한 번이라도 낚였어요',
+    allOf:(p, K) => `${K === 2 ? '둘' : '셋'} 다 낚인 사람은 ${p}%예요.`,
+    people:n => `${n}명`,
+    lureCap:'보여 주지 않은 단어별로 봤다고 답한 비율',
+    tN:'끝낸 사람', tAcc:'테스트 정답률', tHit:'실제 단어를 알아본 비율', tMathAcc:'암산 정답률',
+    pieAria:t => `파이 차트. ${t}`,
+    qCount:(i, n) => `${n}개 중 ${i}번째`,
+    headSome:n => n === 1 ? '보여 주지 않은 단어를 봤다고 기억했어요' : `보여 주지 않은 단어 ${n}개를 봤다고 기억했어요`,
+    headNone:'하나도 속지 않았어요',
+    leadSome:n => n === 1 ? '이 단어는 목록에 없었어요. 목록이 계속 가리키던 바로 그 단어라서, 기억이 빈자리를 채운 거예요.'
+      : '이 단어들은 목록에 없었어요. 목록이 계속 가리키던 바로 그 단어들이라서, 기억이 빈자리를 채운 거예요.',
+    leadNone:k => k === 1 ? '목록이 계속 가리키지만 한 번도 보여 주지 않은 단어가 있었어요. 대부분의 사람은 그 단어를 봤다고 답해요.'
+      : '목록마다 계속 가리키지만 한 번도 보여 주지 않은 단어가 하나씩 있었어요. 대부분의 사람은 그중 하나 이상을 봤다고 답해요.',
+    youSaid:'봤다고 답했어요', youNo:'안 봤다고 답했어요', fromList:w => `목록: ${w.slice(0, 5).join(', ')}…`,
+    tStudied:() => '목록에 있던 단어를 알아본 것',
+    tControl:ws => `${ws.join(', ')}${{ doctor:'를', sweet:'를', needle:'을' }[ws[ws.length - 1]] || '를'} 봤다고 한 것 (이 목록은 안 보여 줬어요)`,
+    tUnrelated:'그 밖의 새 단어를 봤다고 한 것',
+    of:(a, b) => `${b}개 중 ${a}개`,
+    roomSaw:(w, p) => `${p}%가 ‘${w}’ 단어를 봤다고 답했어요.`, roomN:n => `지금까지 ${n}명이 끝냈어요.`,
+    sent:'응답을 보냈어요.', sending:'응답을 보내는 중…', failed:'응답을 보내지 못했어요.', practice:'연습 모드라 응답을 어디에도 보내지 않았어요.',
+    problem:{ missing:'config.js 파일을 찾지 못해서 연습 모드로 돌아가요.', syntax:'config.js를 읽지 못해서 연습 모드로 돌아가요.', shape:'config.js의 collectUrl이 Apps Script 웹 앱 주소(…/exec)가 아니에요.', access:'수집기가 로그인을 요구해요. Apps Script 배포의 액세스가 모든 사용자인지 확인해 주세요.', down:'지금은 수집기에 연결하지 못했어요.' },
+    resumeStudy:'목록을 보는 중에 페이지가 새로 열려서, 목록을 처음부터 다시 보여 드려요.',
+  },
+};
+const S = STR[L];
+const STATIC_KO = {
+  brand:'기억 테스트',
+  start:'시작하기', fine:'이름이나 연락처는 묻지 않아요. 응답은 전체 통계에만 쓰여요.',
+  ready:'단어가 1.5초마다 바뀌어요. 화면을 계속 봐 주세요.',
+  testH:'이제 테스트예요',
+  testGo:'테스트 시작', yes:'네, 봤어요', no:'아니요', keys:'키보드: Y는 네, N은 아니요',
+  tallyH:'내 답', roomH:'실시간 전체 통계', retry:'다시 보내기', seeRoom:'전체 결과 보기', again:'처음부터 다시',
+};
+document.title = S.title;
+if (L === 'ko') $$('[data-t]').forEach(el => { const v = STATIC_KO[el.dataset.t]; if (v != null) el.textContent = v; });
+if (CFG.msPerWord !== 1500 && L === 'en') $('[data-t="ready"]').textContent = `Words appear every ${(CFG.msPerWord / 1000).toFixed(1)} seconds. Keep your eyes here.`;
+if (CFG.msPerWord !== 1500 && L === 'ko') $('[data-t="ready"]').textContent = `단어가 ${(CFG.msPerWord / 1000).toFixed(1)}초마다 바뀌어요. 화면을 계속 봐 주세요.`;
+$('[data-t="h1"]').textContent = S.h1(D.SECONDS);
+$('[data-t="lead"]').textContent = S.lead(D.K);
+$('[data-t="startMeta"]').textContent = S.meta(D.SECONDS);
+$('[data-t="testLead"]').textContent = S.testLead(D.TEST.length, D.K);
+$('[data-t="q"]').textContent = S.q(D.K);
+$('[data-t="luresH"]').textContent = S.luresH(D.K);
+$('#langBtn').textContent = D.OTHER.label; $('#langBtn').lang = D.OTHER.code; $('#langBtn').setAttribute('aria-label', S.langAria);
+$('#langBtn').addEventListener('click', () => D.setLang(D.OTHER.code));
+$('#event').textContent = D.pickText(CFG.title);
+
+/* ---------------- state ---------------- */
+const KEY = 'drm:v1';
+let st = null;
+try { st = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+if (!st || st.v !== D.VERSION || st.sig !== D.SIG) st = null;
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
+let CID = null;
+try { CID = localStorage.getItem('drm:client'); if (!CID) { CID = 'c' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('drm:client', CID); } } catch (e) { CID = 'c' + Math.random().toString(36).slice(2); }
+
+function show(id) { $$('.view').forEach(v => { v.hidden = v.id !== id; }); window.scrollTo(0, 0); }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ---------------- collector ---------------- */
+const API = { on:!!CFG.collectUrl && !D.CFG_PROBLEM, problem:D.CFG_PROBLEM ? S.problem[D.CFG_PROBLEM] : '' };
+if (API.problem) { $('#notice').textContent = API.problem; $('#notice').hidden = false; }
+else if (API.on) D.getJSON('action=ping', 9000).then(j => { if (!j.ok || j.app !== 'drm') throw new Error('notdrm'); })
+  .catch(e => { API.problem = e.message === 'access' ? S.problem.access : S.problem.down; $('#notice').textContent = API.problem; $('#notice').hidden = false; });
+
+/* ---------------- study ---------------- */
+async function runStudy() {
+  st = { v:D.VERSION, sig:D.SIG, phase:'study', lists:D.shuffle(D.LISTS.map(l => l.lure)), t0:Date.now(), answers:{}, i:0, test:D.shuffle(D.TEST.map(t => t.w)) };
+  save();
+  show('vReady');
+  for (const n of [3, 2, 1]) { $('#countdown').textContent = n; await sleep(800); }
+  show('vStudy');
+  // each list is followed by sums, as in the original arithmetic condition: list, sums, list, sums, ..., test
+  const lists = st.lists.map(k => D.LISTS.find(l => l.lure === k)), total = lists.length * 15;
+  let k = 0; st.math = { attempted:0, correct:0 };
+  for (let li = 0; li < lists.length; li++) {
+    show('vStudy');
+    $('#studyWord').textContent = '';
+    if (li > 0) { $('#listLabel').textContent = S.nextList(li + 1, lists.length); await sleep(1800); }
+    $('#listLabel').textContent = S.listOf(li + 1, lists.length);
+    for (const w of lists[li].words) {
+      const el = $('#studyWord'); el.classList.remove('in'); void el.offsetWidth; el.textContent = w; el.classList.add('in');
+      k++; $('#studyBar').style.width = (k / total * 100).toFixed(1) + '%';
+      await sleep(CFG.msPerWord);
+    }
+    $('#studyWord').textContent = '';
+    await runSums();
+  }
+  st.phase = 'testIntro'; save();
+  show('vTestIntro');
+}
+
+/* ---------------- sums ---------------- */
+async function runSums() {
+  st.phase = 'sums'; save();
+  show('vSums'); $('#sumsBar').style.width = '0%';
+  const secs = Math.max(5, CFG.distractorSec | 0);
+  $('#sumsLabel').textContent = S.sums(secs);
+  const end = Date.now() + secs * 1000;
+  const bar = setInterval(() => { $('#sumsBar').style.width = Math.min(100, (1 - (end - Date.now()) / (secs * 1000)) * 100).toFixed(1) + '%'; }, 200);
+  while (Date.now() < end) {
+    const pr = problem();
+    $('#sum').textContent = pr.text;
+    const picked = await new Promise(res => {
+      const box = $('#choices'); box.innerHTML = '';
+      for (const v of pr.opts) { const b2 = document.createElement('button'); b2.type = 'button'; b2.textContent = v; b2.addEventListener('click', () => res({ v, el:b2 })); box.appendChild(b2); }
+      setTimeout(() => res(null), Math.max(0, end - Date.now()));
+    });
+    if (!picked) break;
+    st.math.attempted++; if (picked.v === pr.ans) st.math.correct++;
+    picked.el.classList.add(picked.v === pr.ans ? 'right' : 'wrong'); save();
+    await sleep(260);
+  }
+  clearInterval(bar);
+}
+// one-step mental arithmetic: two-digit addition or subtraction, or a two-digit number times or divided by a one-digit number
+function problem() {
+  const r = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  let text, ans, near = [1, -1, 2, -2, 10, -10];
+  switch (r(0, 3)) {
+    case 0: { const a = r(12, 79), b = r(12, 79); text = `${a} + ${b}`; ans = a + b; break; }
+    case 1: { const a = r(31, 98), b = r(12, a - 6); text = `${a} − ${b}`; ans = a - b; break; }
+    case 2: { const a = r(12, 39), b = r(3, 9); text = `${a} × ${b}`; ans = a * b; break; }
+    default: { const b = r(3, 9), q = r(Math.max(4, Math.ceil(12 / b)), Math.floor(98 / b)); text = `${b * q} ÷ ${b}`; ans = q; near = [1, -1, 2, -2, 3, -3]; }
+  }
+  const opts = new Set([ans]);
+  while (opts.size < 4) { const v = ans + near[r(0, near.length - 1)]; if (v > 0) opts.add(v); }
+  return { text, ans, opts:D.shuffle([...opts]) };
+}
+
+/* ---------------- test ---------------- */
+function showItem() {
+  const w = st.test[st.i];
+  $('#qCount').textContent = S.qCount(st.i + 1, st.test.length);
+  const el = $('#testWord'); el.classList.remove('in'); void el.offsetWidth; el.textContent = w; el.classList.add('in');
+}
+let busy = false;
+function answer(yes) {
+  if (busy || !st || st.phase !== 'test') return;
+  busy = true; setTimeout(() => { busy = false; }, 250);
+  st.answers[st.test[st.i]] = yes ? 1 : 0; st.i++; save();
+  if (st.i < st.test.length) showItem(); else finish();
+}
+$('#testBtn').addEventListener('click', () => { st.phase = 'test'; st.i = 0; st.answers = {}; save(); show('vTest'); showItem(); });
+$('#yesBtn').addEventListener('click', () => answer(true));
+$('#noBtn').addEventListener('click', () => answer(false));
+document.addEventListener('keydown', e => {
+  if (!st || st.phase !== 'test' || $('#vTest').hidden) return;
+  if (e.key === 'y' || e.key === 'Y' || e.key === 'ArrowLeft') { e.preventDefault(); answer(true); }
+  if (e.key === 'n' || e.key === 'N' || e.key === 'ArrowRight') { e.preventDefault(); answer(false); }
+});
+
+/* ---------------- result ---------------- */
+function finish() {
+  st.phase = 'done'; st.duration = Math.round((Date.now() - st.t0) / 100) / 10; save();
+  renderResult(true);
+  send();
+}
+function renderResult(fresh) {
+  const sc = D.score(st.answers), saw = D.LISTS.filter(l => st.answers[l.lure] === 1).map(l => l.lure);
+  $('#rHead').textContent = saw.length ? S.headSome(saw.length) : S.headNone;
+  $('#rGhosts').innerHTML = saw.map(w => `<span class="ghost">${esc(w)}</span>`).join('');
+  $('#rGhosts').hidden = !saw.length;
+  $('#rLead').textContent = saw.length ? S.leadSome(saw.length, D.K) : S.leadNone(D.K);
+  $('#rLures').innerHTML = D.LISTS.map(l => {
+    const said = st.answers[l.lure] === 1;
+    return `<div class="lure"><b class="${said ? 'said' : ''}">${esc(l.lure)}</b><span class="you">${said ? S.youSaid : S.youNo}</span><span class="from">${esc(S.fromList(l.words))}</span></div>`;
+  }).join('');
+  const m = st.math || { attempted:0, correct:0 };
+  $('#rTally').innerHTML = [[S.tStudied(D.K), sc.studied, D.COUNT.studied], [S.tControl(D.CONTROLS.map(c => c.lure)), sc.control, D.COUNT.control], [S.tUnrelated, sc.unrelated, D.COUNT.unrelated]]
+    .concat(m.attempted ? [[S.tMath, m.correct, m.attempted]] : [])
+    .map(([t, a, b]) => `<li><span>${esc(t)}</span><b>${S.of(a, b)}</b></li>`).join('');
+  if (st.room) renderRoom(st.room);
+  show('vResult');
+  if (!fresh) $$('.ghost').forEach(g => { g.style.animation = 'none'; });
+  status();
+}
+// the live board: who was fooled, how accurate the room is, and each never-shown word
+let lastRoom = 0;
+function renderRoom(room) {
+  if (!room || !room.n) return;
+  lastRoom = Date.now();
+  const n = room.n, counts = (room.lureCount || []).slice(0, D.K + 1);
+  while (counts.length < D.K + 1) counts.push(0);
+  const share = v => Math.round(v / n * 100), fooledAny = n - counts[0];
+  $('#atLeast').textContent = share(fooledAny) + '%';
+  $('#atLeastT').textContent = S.atLeast(D.K);
+  $('#allT').textContent = D.K > 1 ? S.allOf(share(counts[D.K]), D.K) : '';
+  const order = counts.map((c, k) => k).reverse();
+  const legend = order.map(k => `${S.fooled(k, D.K)}: ${share(counts[k])}%`).join(', ');
+  $('#pie').innerHTML = D.pieSVG(counts, { size:200, aria:S.pieAria(legend) });
+  $('#pieLegend').innerHTML = order.map(k => `<li><span class="sw" style="background:${D.sliceColor(k)}"></span><span>${esc(S.fooled(k, D.K))}</span><b>${share(counts[k])}%</b><small>${esc(S.people(counts[k]))}</small></li>`).join('');
+  const tile = (t, v) => `<div class="tile"><span>${esc(t)}</span><b>${v}</b></div>`;
+  $('#tiles').innerHTML = tile(S.tN, n) + tile(S.tAcc, room.accuracy != null ? pct(room.accuracy) + '%' : '–')
+    + tile(S.tHit, pct(room.rates.studied) + '%') + tile(S.tMathAcc, room.math && room.math.accuracy != null ? pct(room.math.accuracy) + '%' : '–');
+  $('#lureCap').textContent = S.lureCap;
+  $('#lureRoom').innerHTML = D.LISTS.map(l => { const v = room.items && room.items[l.lure] != null ? room.items[l.lure] : 0;
+    return `<div><em>${esc(l.lure)}</em><span class="tr"><i style="width:${pct(v)}%"></i></span><b>${pct(v)}%</b></div>`; }).join('');
+  $('#rRoom').hidden = false;
+  paintLive();
+}
+function paintLive() { if (lastRoom) $('#liveTxt').textContent = S.live(Math.round((Date.now() - lastRoom) / 1000)); }
+setInterval(paintLive, 1000);
+// while the result is open, ask for the room's numbers every 10 seconds (for half an hour at most)
+let polling = false;
+function startPolling() {
+  if (polling || !API.on) return; polling = true;
+  const until = Date.now() + 30 * 60 * 1000;
+  (function tick() {
+    setTimeout(async () => {
+      if (Date.now() > until || !st || st.phase !== 'done') { polling = false; return; }
+      if (!document.hidden) { try { const j = await D.getJSON('action=stats', 12000); if (j.ok) { st.room = j; save(); renderRoom(j); } } catch (e) {} }
+      tick();
+    }, 10000 + Math.random() * 2000);
+  })();
+}
+function status(text) {
+  const box = $('#rStatus');
+  if (text) { box.textContent = text; return; }
+  box.textContent = !API.on ? (API.problem || S.practice) : st.sent ? S.sent : '';
+  $('#resultsLink').hidden = !API.on;
+}
+async function send() {
+  if (!API.on || st.sent) { status(); return; }
+  status(S.sending); $('#retryBtn').hidden = true;
+  try {
+    const j = await D.post({ v:D.VERSION, set:D.SIG, client_id:CID, lang:L, duration:st.duration, lists:st.lists, math:st.math || { attempted:0, correct:0 }, answers:st.answers });
+    st.sent = true; st.id = j.id; st.room = j.room || null; save();
+    if (st.room) renderRoom(st.room);
+    status(); startPolling();
+  } catch (e) {
+    status(S.failed + (e.said ? ' ' + e.said : '')); $('#retryBtn').hidden = false;
+  }
+}
+$('#retryBtn').addEventListener('click', send);
+$('#againBtn').addEventListener('click', () => { st = null; try { localStorage.removeItem(KEY); } catch (e) {} show('vIntro'); });
+$('#startBtn').addEventListener('click', () => runStudy());
+
+/* ---------------- where to start ---------------- */
+if (st && st.phase === 'done') { renderResult(false); if (st.sent) startPolling(); }
+else if (st && st.phase === 'test') { show('vTest'); showItem(); }
+else if (st && st.phase === 'testIntro') show('vTestIntro');
+else if (st && (st.phase === 'study' || st.phase === 'sums')) { show('vIntro'); $('#notice').textContent = S.resumeStudy; $('#notice').hidden = false; st = null; }
+else show('vIntro');
+document.documentElement.classList.remove('boot');
+})();
+</script>
+</body>
+</html>
